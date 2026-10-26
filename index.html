@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A responsive SQL learning game built around portable, cross-dialect concepts.">
+    <title>SQL Hero: Battle of the Database</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            min-height: 100%;
+        }
+
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+            font-family: 'Courier New', monospace;
+            padding: clamp(4px, 1.5vw, 20px);
+            overflow: auto;
+        }
+
+        #game-container {
+            width: min(680px, 100%);
+            height: min(720px, calc(100vh - clamp(8px, 3vw, 40px)));
+            height: min(720px, calc(100dvh - clamp(8px, 3vw, 40px)));
+            background: #1f2937;
+            border: 4px solid #4b5563;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #main-menu {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: clamp(8px, 2.5%, 20px);
+            justify-content: center;
+            align-items: center;
+            gap: clamp(4px, 1.2%, 12px);
+            overflow: auto;
+        }
+
+        .menu-title {
+            font-size: clamp(18px, 7vw, 48px);
+            font-weight: bold;
+            color: #22d3ee;
+            text-shadow: 0 0 20px rgba(34, 211, 238, 0.5);
+            letter-spacing: clamp(2px, 1vw, 4px);
+            flex-shrink: 0;
+        }
+
+        .menu-subtitle {
+            font-size: clamp(10px, 3.5vw, 16px);
+            color: #9ca3af;
+            flex-shrink: 0;
+        }
+
+        .level-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(4px, 1%, 8px);
+            width: 100%;
+            max-width: 500px;
+            flex: 1;
+            min-height: 0;
+            overflow: visible;
+            padding: 0 4px;
+        }
+
+        .level-button {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            border: 3px solid #4b5563;
+            border-radius: 8px;
+            padding: clamp(6px, 1.5%, 12px) clamp(8px, 2%, 12px);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: clamp(6px, 2vw, 12px);
+            flex: 1;
+            min-height: 48px;
+        }
+
+        .level-button:hover {
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            border-color: #22d3ee;
+            box-shadow: 0 4px 20px rgba(34, 211, 238, 0.3);
+            transform: scale(1.02);
+        }
+
+        .level-emoji {
+            font-size: clamp(16px, 6vw, 32px);
+            flex-shrink: 0;
+        }
+
+        .level-name {
+            flex: 1;
+            font-size: clamp(11px, 4vw, 18px);
+            font-weight: bold;
+            color: #f3f4f6;
+            text-align: left;
+        }
+
+        .level-copy {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .level-topic {
+            margin-top: 3px;
+            color: #9ca3af;
+            font-size: clamp(8px, 2.4vw, 11px);
+            text-align: left;
+            line-height: 1.25;
+        }
+
+        .level-difficulty {
+            font-size: clamp(10px, 3.5vw, 14px);
+            color: #fbbf24;
+            flex-shrink: 0;
+        }
+
+        .back-button {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            border: 2px solid #9ca3af;
+            border-radius: 6px;
+            padding: clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 12px);
+            font-size: clamp(16px, 4vw, 24px);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: clamp(40px, 10vw, 60px);
+        }
+
+        .back-button:hover {
+            background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+            border-color: #22d3ee;
+            transform: scale(1.05);
+        }
+
+        .back-button:active {
+            transform: scale(0.95);
+        }
+
+        #battle-screen {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: clamp(5px, 1.5vw, 12px);
+            gap: clamp(3px, 0.8vw, 8px);
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-color: #4b5563 #1f2937;
+            scrollbar-gutter: stable;
+        }
+
+        #battle-screen::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #battle-screen::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+
+        #battle-screen::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 999px;
+        }
+
+        #status-bar {
+            display: flex;
+            justify-content: space-between;
+            gap: clamp(8px, 2vw, 15px);
+            flex: 0 0 auto;
+            min-height: 72px;
+        }
+
+        .health-container {
+            flex: 1;
+            background: #374151;
+            padding: clamp(5px, 1.2vw, 10px);
+            border-radius: 6px;
+            border: 2px solid #6b7280;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .health-label {
+            color: #9ca3af;
+            font-size: clamp(9px, 3vw, 14px);
+            margin-bottom: 3px;
+        }
+
+        .health-bar-outer {
+            background: #1f2937;
+            height: clamp(14px, 3.5vw, 24px);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 2px solid #4b5563;
+            position: relative;
+        }
+
+        .health-bar-inner {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .health-value {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: clamp(9px, 2.5vw, 12px);
+            font-weight: bold;
+            text-shadow: 0 1px 2px #000;
+        }
+
+        .player-health {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .boss-health {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        #battle-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: #111827;
+            border-radius: 8px;
+            border: 2px solid #374151;
+            padding: clamp(6px, 1.5vw, 12px);
+            position: relative;
+            flex: 0 1 24%;
+            min-height: 82px;
+            max-height: 150px;
+        }
+
+        .character {
+            text-align: center;
+            position: relative;
+        }
+
+        .character-sprite {
+            font-size: clamp(28px, 10vw, 60px);
+            margin-bottom: clamp(2px, 0.8vw, 8px);
+            display: block;
+        }
+
+        .character-name {
+            color: #d1d5db;
+            font-size: clamp(9px, 3vw, 13px);
+            font-weight: bold;
+        }
+
+        .damage-text {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(16px, 4vw, 24px);
+            font-weight: bold;
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-40px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        #question-panel {
+            flex: 0 0 auto;
+            min-width: 0;
+            min-height: auto;
+            overflow: visible;
+            background: #111827;
+            border: 2px solid #374151;
+            border-radius: 8px;
+            padding: clamp(7px, 1.5vw, 12px);
+        }
+
+        #question-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            color: #9ca3af;
+            font-size: clamp(9px, 2.5vw, 12px);
+            font-weight: bold;
+        }
+
+        #question-meta > * {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .portable-badge {
+            color: #67e8f9;
+        }
+
+        #dialogue-box {
+            background: #1f2937;
+            border: 3px solid #4b5563;
+            border-radius: 6px;
+            padding: clamp(5px, 1.5vw, 10px);
+            color: #f3f4f6;
+            font-size: clamp(11px, 3.2vw, 14px);
+            line-height: 1.4;
+            max-width: 100%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        #context-card {
+            margin-top: 7px;
+            padding: 7px 9px;
+            background: #172033;
+            border-left: 3px solid #22d3ee;
+            border-radius: 4px;
+            color: #d1d5db;
+            font-size: clamp(9px, 2.8vw, 12px);
+            line-height: 1.35;
+        }
+
+        .panel-label {
+            display: block;
+            margin-bottom: 3px;
+            color: #67e8f9;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        #context-text {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        #query-preview {
+            margin-top: 7px;
+            padding: 8px 10px;
+            background: #030712;
+            border: 1px solid #4b5563;
+            border-radius: 5px;
+            color: #a7f3d0;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(9px, 2.8vw, 12px);
+            line-height: 1.35;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        #feedback {
+            margin-top: 7px;
+            padding: 8px 10px;
+            border-radius: 5px;
+            color: #f9fafb;
+            font-size: clamp(10px, 2.9vw, 13px);
+            line-height: 1.4;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+        }
+
+        #feedback.correct-feedback {
+            background: rgba(5, 150, 105, 0.28);
+            border: 2px solid #10b981;
+        }
+
+        #feedback.incorrect-feedback {
+            background: rgba(220, 38, 38, 0.25);
+            border: 2px solid #ef4444;
+        }
+
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(4px, 1vw, 6px);
+            flex: 0 0 auto;
+        }
+
+        .choice-button {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: clamp(4px, 1.5vw, 12px) clamp(6px, 2vw, 15px);
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(10px, 3.5vw, 14px);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #1e40af;
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px;
+            max-width: 100%;
+            line-height: 1.3;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .choice-button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .choice-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .choice-button:disabled {
+            cursor: not-allowed;
+        }
+
+        .choice-button.answer-correct,
+        .choice-button.revealed-correct {
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            border-color: #6ee7b7;
+        }
+
+        .choice-button.answer-incorrect {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            border-color: #fecaca;
+        }
+
+        .choice-button:focus-visible,
+        .level-button:focus-visible,
+        .back-button:focus-visible,
+        .restart-button:focus-visible {
+            outline: 3px solid #fbbf24;
+            outline-offset: 2px;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        #victory-screen, #defeat-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .end-message {
+            font-size: clamp(24px, 6vw, 48px);
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #victory-screen .end-message {
+            color: #10b981;
+        }
+
+        #defeat-screen .end-message {
+            color: #ef4444;
+        }
+
+        .restart-button {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(14px, 3.5vw, 18px);
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid #6d28d9;
+            margin: 5px;
+        }
+
+        .restart-button:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        @media (max-width: 640px) {
+            #game-container {
+                border-width: 2px;
+                border-radius: 6px;
+            }
+            .level-button {
+                border-width: 2px;
+            }
+            #dialogue-box {
+                border-width: 2px;
+            }
+        }
+
+        @media (max-height: 620px) {
+            .menu-title {
+                font-size: clamp(16px, 5vh, 32px);
+            }
+            #battle-area {
+                flex-basis: 18%;
+                min-height: 64px;
+            }
+            #status-bar {
+                min-height: 58px;
+            }
+        }
+
+        @media (max-height: 560px) {
+            #battle-area {
+                display: none;
+            }
+
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            body {
+                align-items: flex-start;
+                padding: 4px;
+            }
+
+            #game-container {
+                width: min(720px, 100%);
+                height: calc(100dvh - 8px);
+            }
+
+            #battle-screen {
+                padding: 5px;
+                gap: 4px;
+            }
+
+            #battle-area {
+                display: none;
+            }
+
+            #status-bar {
+                min-height: 50px;
+            }
+
+            .health-container {
+                padding: 4px 7px;
+            }
+
+            .choice-button {
+                min-height: 44px;
+                padding: 5px 8px;
+                font-size: clamp(10px, 2vw, 13px);
+            }
+
+            #question-panel {
+                padding: 6px 8px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Main Menu -->
+        <div id="main-menu">
+            <div class="menu-title">SQL HERO</div>
+            <div class="menu-subtitle">Choose Your Challenge</div>
+            <div class="level-buttons">
+                <button class="level-button" onclick="startLevel(0)" aria-label="SQL Hero, basic SELECT queries, difficulty 1 of 5">
+                    <div class="level-emoji">🦸</div>
+                    <div class="level-copy">
+                        <div class="level-name">SQL Hero</div>
+                        <div class="level-topic">SELECT • FROM • WHERE</div>
+                    </div>
+                    <div class="level-difficulty" aria-hidden="true">★☆☆☆☆</div>
+                </button>
+                <button class="level-button" onclick="startLevel(1)" aria-label="SQL Pro, grouping and sorting, difficulty 2 of 5">
+                    <div class="level-emoji">⚔️</div>
+                    <div class="level-copy">
+                        <div class="level-name">SQL Pro</div>
+                        <div class="level-topic">COUNT • GROUP BY • HAVING</div>
+                    </div>
+                    <div class="level-difficulty" aria-hidden="true">★★☆☆☆</div>
+                </button>
+                <button class="level-button" onclick="startLevel(2)" aria-label="SQL Wizard, nulls and joins, difficulty 3 of 5">
+                    <div class="level-emoji">🧙‍♂️</div>
+                    <div class="level-copy">
+                        <div class="level-name">SQL Wizard</div>
+                        <div class="level-topic">NULL • JOIN • COALESCE</div>
+                    </div>
+                    <div class="level-difficulty" aria-hidden="true">★★★☆☆</div>
+                </button>
+                <button class="level-button" onclick="startLevel(3)" aria-label="SQL Master, combining and structuring queries, difficulty 4 of 5">
+                    <div class="level-emoji">👑</div>
+                    <div class="level-copy">
+                        <div class="level-name">SQL Master</div>
+                        <div class="level-topic">UNION • CASE • EXISTS • CTE</div>
+                    </div>
+                    <div class="level-difficulty" aria-hidden="true">★★★★☆</div>
+                </button>
+                <button class="level-button" onclick="startLevel(4)" aria-label="SQL Legend, portable advanced queries, difficulty 5 of 5">
+                    <div class="level-emoji">⚡&#xFE0F;</div>
+                    <div class="level-copy">
+                        <div class="level-name">SQL Legend</div>
+                        <div class="level-topic">SUBQUERIES • QUERY REASONING</div>
+                    </div>
+                    <div class="level-difficulty" aria-hidden="true">★★★★★</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Battle Screen -->
+        <div id="battle-screen" style="display: none;">
+            <div id="status-bar">
+                <div class="health-container">
+                    <div class="health-label">HERO HP</div>
+                    <div class="health-bar-outer">
+                        <div class="health-bar-inner player-health" id="player-health" role="progressbar" aria-label="Hero health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"></div>
+                        <span class="health-value" id="player-hp-text" aria-hidden="true">100/100</span>
+                    </div>
+                </div>
+                <button class="back-button" onclick="returnToMenu()" title="Return to Menu" aria-label="Return to menu">
+                    ⬅️
+                </button>
+                <div class="health-container">
+                    <div class="health-label">BOSS HP</div>
+                    <div class="health-bar-outer">
+                        <div class="health-bar-inner boss-health" id="boss-health" role="progressbar" aria-label="Boss health" aria-valuemin="0" aria-valuemax="150" aria-valuenow="150"></div>
+                        <span class="health-value" id="boss-hp-text" aria-hidden="true">150/150</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="battle-area">
+                <div class="character" id="player-char">
+                    <span class="character-sprite" id="player-sprite">🧙‍♂️</span>
+                    <div class="character-name" id="player-name">SQL Wizard</div>
+                </div>
+                <div class="character" id="boss-char">
+                    <span class="character-sprite" id="boss-sprite">🐉</span>
+                    <div class="character-name" id="boss-name">NULL Dragon</div>
+                </div>
+            </div>
+
+            <section id="question-panel" tabindex="-1" aria-label="Current SQL question">
+                <div id="question-meta">
+                    <span id="question-progress">Question 1 of 3</span>
+                    <span class="portable-badge">PORTABLE SQL</span>
+                </div>
+                <div id="dialogue-box">Choose a level to begin.</div>
+                <div id="context-card">
+                    <span class="panel-label">SCENARIO</span>
+                    <div id="context-text"></div>
+                </div>
+                <pre id="query-preview" aria-label="SQL query with a blank"><code id="query-text"></code></pre>
+                <div id="feedback" role="status" aria-live="polite" hidden></div>
+            </section>
+
+            <div id="choices" aria-label="Answer choices">
+                <button class="choice-button" type="button" onclick="makeChoice(0)">SELECT</button>
+                <button class="choice-button" type="button" onclick="makeChoice(1)">FROM</button>
+                <button class="choice-button" type="button" onclick="makeChoice(2)">WHERE</button>
+            </div>
+        </div>
+
+        <div id="victory-screen" role="dialog" aria-modal="true" aria-labelledby="victory-title">
+            <div class="end-message" id="victory-title">🎉 VICTORY! 🎉</div>
+            <div style="color: #d1d5db; text-align: center; font-size: clamp(14px, 3.5vw, 18px);">
+                You mastered these portable SQL concepts and defeated the boss!
+            </div>
+            <button class="restart-button" onclick="returnToMenu()">RETURN TO MENU</button>
+            <button class="restart-button" onclick="restartLevel()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #047857;">PLAY LEVEL AGAIN</button>
+        </div>
+
+        <div id="defeat-screen" role="dialog" aria-modal="true" aria-labelledby="defeat-title">
+            <div class="end-message" id="defeat-title">💀 DEFEATED 💀</div>
+            <div style="color: #d1d5db; text-align: center; font-size: clamp(14px, 3.5vw, 18px);">
+                Review the explanations and try the level again.
+            </div>
+            <button class="restart-button" onclick="returnToMenu()">RETURN TO MENU</button>
+            <button class="restart-button" onclick="restartLevel()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-color: #b91c1c;">RETRY LEVEL</button>
+        </div>
+    </div>
+
+    <script>
+        let playerHP = 100;
+        let playerMaxHP = 100;
+        let bossHP = 100;
+        let bossMaxHP = 100;
+        let questStep = 0;
+        let isProcessing = false;
+        let currentLevel = 0;
+        let currentChoices = [];
+        let pendingAction = null;
+        let feedbackTimer = null;
+        const feedbackDelay = 1000;
+
+        const levels = [
+            {
+                playerName: "SQL Hero",
+                playerSprite: "🦸",
+                bossName: "Syntax Slime",
+                bossSprite: "🟢",
+                playerMaxHP: 100,
+                bossMaxHP: 100,
+                mistakeLimit: 3,
+                quests: [
+                    {
+                        dialogue: "Syntax Slime: Which portable SQL keyword chooses columns to return?",
+                        context: "Table: heroes(id, hero_name, active)\nGoal: Return every hero name.",
+                        query: "_____ hero_name FROM heroes;",
+                        choices: [
+                            { text: "SELECT", correct: true },
+                            { text: "GET", correct: false },
+                            { text: "READ", correct: false }
+                        ],
+                        explanation: "SELECT identifies the columns or expressions that a query returns."
+                    },
+                    {
+                        dialogue: "Syntax Slime: Which keyword introduces the table that supplies the rows?",
+                        context: "Table: heroes(id, hero_name, active)\nGoal: Read hero_name from the heroes table.",
+                        query: "SELECT hero_name _____ heroes;",
+                        choices: [
+                            { text: "FROM", correct: true },
+                            { text: "IN", correct: false },
+                            { text: "OF", correct: false }
+                        ],
+                        explanation: "FROM introduces the table or table expression used by the query."
+                    },
+                    {
+                        dialogue: "Syntax Slime: Which clause keeps only rows that meet a condition?",
+                        context: "Table: heroes(id, hero_name, active)\nThe active column uses 1 for active and 0 for inactive.",
+                        query: "SELECT hero_name\nFROM heroes\n_____ active = 1;",
+                        choices: [
+                            { text: "WHERE", correct: true },
+                            { text: "HAVING", correct: false },
+                            { text: "FILTER", correct: false }
+                        ],
+                        explanation: "WHERE filters individual rows before they are returned or grouped."
+                    }
+                ]
+            },
+            {
+                playerName: "SQL Pro",
+                playerSprite: "⚔️",
+                bossName: "COUNT Cobra",
+                bossSprite: "🐍",
+                playerMaxHP: 100,
+                bossMaxHP: 120,
+                mistakeLimit: 2,
+                quests: [
+                    {
+                        dialogue: "COUNT Cobra: Which expression counts every row in the table?",
+                        context: "Table: orders(order_id, customer_id, amount)\nGoal: Return one value containing the number of orders.",
+                        query: "SELECT _____ FROM orders;",
+                        choices: [
+                            { text: "COUNT(*)", correct: true },
+                            { text: "SUM(*)", correct: false },
+                            { text: "TOTAL(*)", correct: false }
+                        ],
+                        explanation: "COUNT(*) counts rows, including rows that contain NULL values in some columns."
+                    },
+                    {
+                        dialogue: "COUNT Cobra: Which clause creates one group for each customer?",
+                        context: "Table: orders(order_id, customer_id, amount)\nGoal: Count the orders placed by each customer.",
+                        query: "SELECT customer_id, COUNT(*)\nFROM orders\n_____ customer_id;",
+                        choices: [
+                            { text: "GROUP BY", correct: true },
+                            { text: "ORDER BY", correct: false },
+                            { text: "WHERE", correct: false }
+                        ],
+                        explanation: "GROUP BY collects rows with the same customer_id before COUNT(*) is calculated."
+                    },
+                    {
+                        dialogue: "COUNT Cobra: Which clause filters the completed groups?",
+                        context: "Goal: Return only customers who placed more than five orders.",
+                        query: "SELECT customer_id, COUNT(*)\nFROM orders\nGROUP BY customer_id\n_____ COUNT(*) > 5;",
+                        choices: [
+                            { text: "HAVING", correct: true },
+                            { text: "WHERE", correct: false },
+                            { text: "ORDER BY", correct: false }
+                        ],
+                        explanation: "HAVING filters groups after aggregation. WHERE filters rows before grouping."
+                    },
+                    {
+                        dialogue: "COUNT Cobra: Which direction puts the largest order count first?",
+                        context: "Goal: Sort customers from the most orders to the fewest.",
+                        query: "SELECT customer_id, COUNT(*)\nFROM orders\nGROUP BY customer_id\nORDER BY COUNT(*) _____;",
+                        choices: [
+                            { text: "DESC", correct: true },
+                            { text: "ASC", correct: false },
+                            { text: "DOWN", correct: false }
+                        ],
+                        explanation: "DESC sorts from larger values to smaller values. ASC does the reverse."
+                    }
+                ]
+            },
+            {
+                playerName: "SQL Wizard",
+                playerSprite: "🧙‍♂️",
+                bossName: "NULL Dragon",
+                bossSprite: "🐉",
+                playerMaxHP: 100,
+                bossMaxHP: 140,
+                mistakeLimit: 2,
+                quests: [
+                    {
+                        dialogue: "NULL Dragon: Which portable condition finds missing email values?",
+                        context: "Table: members(member_id, member_name, email)\nGoal: Return members whose email is missing.",
+                        query: "SELECT member_name\nFROM members\nWHERE email _____;",
+                        choices: [
+                            { text: "IS NULL", correct: true },
+                            { text: "= NULL", correct: false },
+                            { text: "== NULL", correct: false }
+                        ],
+                        explanation: "NULL represents an unknown or missing value, so portable SQL tests it with IS NULL."
+                    },
+                    {
+                        dialogue: "NULL Dragon: Which join keeps every customer, even customers without an order?",
+                        context: "Left table: customers c\nRight table: orders o\nGoal: Keep every row from customers and match orders when available.",
+                        query: "SELECT c.customer_name, o.order_id\nFROM customers c\n_____ orders o ON c.customer_id = o.customer_id;",
+                        choices: [
+                            { text: "LEFT JOIN", correct: true },
+                            { text: "INNER JOIN", correct: false },
+                            { text: "CROSS JOIN", correct: false }
+                        ],
+                        explanation: "LEFT JOIN preserves all rows from its left input and fills unmatched right-side columns with NULL."
+                    },
+                    {
+                        dialogue: "NULL Dragon: Which portable expression replaces a missing price with zero?",
+                        context: "Table: products(product_name, price)\nGoal: Return 0 when price is NULL.",
+                        query: "SELECT product_name, _____ AS display_price\nFROM products;",
+                        choices: [
+                            { text: "COALESCE(price, 0)", correct: true },
+                            { text: "NULLIF(price, 0)", correct: false },
+                            { text: "DEFAULT(price, 0)", correct: false }
+                        ],
+                        explanation: "COALESCE returns the first non-NULL argument and is the portable choice for fallback values."
+                    },
+                    {
+                        dialogue: "NULL Dragon: Which keyword removes duplicate cities from the result?",
+                        context: "Table: customers(customer_id, city)\nGoal: Return each city only once.",
+                        query: "SELECT _____ city\nFROM customers;",
+                        choices: [
+                            { text: "DISTINCT", correct: true },
+                            { text: "ALL", correct: false },
+                            { text: "SINGLE", correct: false }
+                        ],
+                        explanation: "DISTINCT removes duplicate result rows. ALL keeps duplicates and is normally the default."
+                    }
+                ]
+            },
+            {
+                playerName: "SQL Master",
+                playerSprite: "👑",
+                bossName: "Index Demon",
+                bossSprite: "😈",
+                playerMaxHP: 100,
+                bossMaxHP: 160,
+                mistakeLimit: 2,
+                quests: [
+                    {
+                        dialogue: "Index Demon: Which join returns only customers that have a matching order?",
+                        context: "Tables: customers c and orders o\nGoal: Discard customers with no matching order.",
+                        query: "SELECT c.customer_name, o.order_id\nFROM customers c\n_____ orders o ON c.customer_id = o.customer_id;",
+                        choices: [
+                            { text: "INNER JOIN", correct: true },
+                            { text: "LEFT JOIN", correct: false },
+                            { text: "CROSS JOIN", correct: false }
+                        ],
+                        explanation: "INNER JOIN returns rows only when the join condition matches on both sides."
+                    },
+                    {
+                        dialogue: "Index Demon: Which operator combines the two results and removes duplicates?",
+                        context: "Both queries return one compatible column named email.\nGoal: Build one deduplicated contact list.",
+                        query: "SELECT email FROM customers\n_____\nSELECT email FROM leads;",
+                        choices: [
+                            { text: "UNION", correct: true },
+                            { text: "UNION ALL", correct: false },
+                            { text: "JOIN", correct: false }
+                        ],
+                        explanation: "UNION combines compatible query results and removes duplicates. UNION ALL keeps duplicates."
+                    },
+                    {
+                        dialogue: "Index Demon: Which portable expression creates the pass or retry label?",
+                        context: "Table: tests(student_name, score)\nGoal: Label scores of 70 or higher as pass.",
+                        query: "SELECT student_name,\n       _____ WHEN score >= 70 THEN 'pass' ELSE 'retry' END AS result\nFROM tests;",
+                        choices: [
+                            { text: "CASE", correct: true },
+                            { text: "IF", correct: false },
+                            { text: "SWITCH", correct: false }
+                        ],
+                        explanation: "CASE is the portable SQL conditional expression. It finishes with END."
+                    },
+                    {
+                        dialogue: "Index Demon: Which predicate checks whether the related subquery returns a row?",
+                        context: "Goal: Return customers who have at least one order.",
+                        query: "SELECT c.customer_name\nFROM customers c\nWHERE _____ (\n  SELECT 1 FROM orders o\n  WHERE o.customer_id = c.customer_id\n);",
+                        choices: [
+                            { text: "EXISTS", correct: true },
+                            { text: "CONTAINS", correct: false },
+                            { text: "FOUND", correct: false }
+                        ],
+                        explanation: "EXISTS is true when its subquery returns at least one row."
+                    },
+                    {
+                        dialogue: "Index Demon: Which keyword begins this named common table expression?",
+                        context: "Goal: Name the open-order query recent_orders, then select from it.",
+                        query: "_____ recent_orders AS (\n  SELECT order_id FROM orders WHERE status = 'open'\n)\nSELECT * FROM recent_orders;",
+                        choices: [
+                            { text: "WITH", correct: true },
+                            { text: "TEMP", correct: false },
+                            { text: "DEFINE", correct: false }
+                        ],
+                        explanation: "WITH introduces a common table expression that can be referenced by the following statement."
+                    }
+                ]
+            },
+            {
+                playerName: "SQL Legend",
+                playerSprite: "⚡\uFE0F",
+                bossName: "Schema Star",
+                bossSprite: "🌟",
+                playerMaxHP: 100,
+                bossMaxHP: 180,
+                mistakeLimit: 1,
+                quests: [
+                    {
+                        dialogue: "Schema Star: Which aggregate returns the greatest salary in each department?",
+                        context: "Table: employees(employee_id, department, salary)\nGoal: Return one maximum salary per department.",
+                        query: "SELECT department, _____(salary)\nFROM employees\nGROUP BY department;",
+                        choices: [
+                            { text: "MAX", correct: true },
+                            { text: "SUM", correct: false },
+                            { text: "COUNT", correct: false }
+                        ],
+                        explanation: "MAX returns the greatest non-NULL value in each group."
+                    },
+                    {
+                        dialogue: "Schema Star: Which aggregate makes the subquery calculate the overall average?",
+                        context: "Table: results(student_name, score)\nGoal: Return students whose score is above the average score.",
+                        query: "SELECT student_name\nFROM results\nWHERE score > (\n  SELECT _____(score) FROM results\n);",
+                        choices: [
+                            { text: "AVG", correct: true },
+                            { text: "MAX", correct: false },
+                            { text: "COUNT", correct: false }
+                        ],
+                        explanation: "AVG calculates the mean. The scalar subquery supplies that value to the outer WHERE condition."
+                    },
+                    {
+                        dialogue: "Schema Star: Which portable predicate includes both ends of the range?",
+                        context: "Table: products(product_name, price)\nGoal: Keep prices from 10 through 20, including 10 and 20.",
+                        query: "SELECT product_name\nFROM products\nWHERE price _____ 10 AND 20;",
+                        choices: [
+                            { text: "BETWEEN", correct: true },
+                            { text: "WITHIN", correct: false },
+                            { text: "RANGE", correct: false }
+                        ],
+                        explanation: "BETWEEN is inclusive, so BETWEEN 10 AND 20 includes both boundary values."
+                    },
+                    {
+                        dialogue: "Schema Star: Which pattern returns names that begin with the letter A?",
+                        context: "Table: heroes(hero_name)\nIn a LIKE pattern, % represents any sequence of characters.",
+                        query: "SELECT hero_name\nFROM heroes\nWHERE hero_name LIKE _____;",
+                        choices: [
+                            { text: "'A%'", correct: true },
+                            { text: "'%A'", correct: false },
+                            { text: "'%A%'", correct: false }
+                        ],
+                        explanation: "'A%' requires A first, followed by zero or more characters."
+                    },
+                    {
+                        dialogue: "Schema Star: Which predicate finds customers that have no matching order?",
+                        context: "Goal: Keep a customer only when the related order subquery returns no rows.",
+                        query: "SELECT c.customer_name\nFROM customers c\nWHERE _____ (\n  SELECT 1 FROM orders o\n  WHERE o.customer_id = c.customer_id\n);",
+                        choices: [
+                            { text: "NOT EXISTS", correct: true },
+                            { text: "EXISTS", correct: false },
+                            { text: "NOT IN", correct: false }
+                        ],
+                        explanation: "NOT EXISTS is true when the correlated subquery returns no rows."
+                    }
+                ]
+            }
+        ];
+
+        function validateQuestionBank() {
+            levels.forEach((level, levelIndex) => {
+                if (!level.quests.length) {
+                    throw new Error("Level " + levelIndex + " has no questions.");
+                }
+                if (!Number.isInteger(level.mistakeLimit) || level.mistakeLimit < 1) {
+                    throw new Error("Level " + levelIndex + " must define a positive mistake limit.");
+                }
+
+                level.quests.forEach((quest, questIndex) => {
+                    const correctAnswers = quest.choices.filter(choice => choice.correct);
+                    if (!quest.context || !quest.query || !quest.explanation) {
+                        throw new Error("Level " + levelIndex + ", question " + questIndex + " is missing learning context.");
+                    }
+                    if (quest.choices.length < 2 || correctAnswers.length !== 1) {
+                        throw new Error("Level " + levelIndex + ", question " + questIndex + " must have exactly one correct answer.");
+                    }
+                });
+            });
+        }
+
+        validateQuestionBank();
+
+        function shuffleChoices(choices) {
+            const shuffled = choices.map(choice => ({ ...choice }));
+            for (let index = shuffled.length - 1; index > 0; index--) {
+                const randomIndex = Math.floor(Math.random() * (index + 1));
+                [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+            }
+            return shuffled;
+        }
+
+        function startLevel(levelIndex) {
+            clearScheduledTransition();
+            currentLevel = levelIndex;
+            const level = levels[levelIndex];
+
+            playerMaxHP = level.playerMaxHP;
+            bossMaxHP = level.bossMaxHP;
+            playerHP = playerMaxHP;
+            bossHP = bossMaxHP;
+            questStep = 0;
+            isProcessing = false;
+            pendingAction = null;
+
+            document.getElementById("player-name").textContent = level.playerName;
+            document.getElementById("player-sprite").textContent = level.playerSprite;
+            document.getElementById("boss-name").textContent = level.bossName;
+            document.getElementById("boss-sprite").textContent = level.bossSprite;
+
+            document.getElementById("main-menu").style.display = "none";
+            document.getElementById("battle-screen").style.display = "flex";
+            document.getElementById("battle-screen").inert = false;
+            document.getElementById("victory-screen").style.display = "none";
+            document.getElementById("defeat-screen").style.display = "none";
+
+            updateHealth();
+            loadQuestion();
+        }
+
+        function returnToMenu() {
+            clearScheduledTransition();
+            document.getElementById("main-menu").style.display = "flex";
+            document.getElementById("battle-screen").style.display = "none";
+            document.getElementById("battle-screen").inert = false;
+            document.getElementById("victory-screen").style.display = "none";
+            document.getElementById("defeat-screen").style.display = "none";
+            isProcessing = false;
+            pendingAction = null;
+
+            requestAnimationFrame(() => {
+                document.querySelector(".level-button").focus();
+            });
+        }
+
+        function restartLevel() {
+            startLevel(currentLevel);
+        }
+
+        function updateHealth() {
+            const playerPercent = Math.max(0, Math.min(100, (playerHP / playerMaxHP) * 100));
+            const bossPercent = Math.max(0, Math.min(100, (bossHP / bossMaxHP) * 100));
+            const playerBar = document.getElementById("player-health");
+            const bossBar = document.getElementById("boss-health");
+
+            playerBar.style.width = playerPercent + "%";
+            bossBar.style.width = bossPercent + "%";
+            playerBar.setAttribute("aria-valuemax", playerMaxHP);
+            playerBar.setAttribute("aria-valuenow", playerHP);
+            bossBar.setAttribute("aria-valuemax", bossMaxHP);
+            bossBar.setAttribute("aria-valuenow", bossHP);
+
+            document.getElementById("player-hp-text").textContent = playerHP + "/" + playerMaxHP;
+            document.getElementById("boss-hp-text").textContent = bossHP + "/" + bossMaxHP;
+        }
+
+        function showDamage(target, amount) {
+            const character = document.getElementById(target);
+            const damageText = document.createElement("div");
+            damageText.className = "damage-text";
+            damageText.textContent = "-" + amount;
+            damageText.style.color = "#ef4444";
+            character.appendChild(damageText);
+            character.classList.add("shake");
+
+            setTimeout(() => {
+                character.classList.remove("shake");
+                damageText.remove();
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            clearScheduledTransition();
+            const level = levels[currentLevel];
+            const quest = level.quests[questStep];
+
+            isProcessing = false;
+            pendingAction = null;
+            currentChoices = shuffleChoices(quest.choices);
+
+            document.getElementById("question-progress").textContent =
+                "Question " + (questStep + 1) + " of " + level.quests.length;
+            document.getElementById("dialogue-box").textContent = quest.dialogue;
+            document.getElementById("context-text").textContent = quest.context;
+            document.getElementById("query-text").textContent = quest.query;
+
+            const feedback = document.getElementById("feedback");
+            feedback.hidden = true;
+            feedback.className = "";
+
+            updateChoices();
+            const battleScreen = document.getElementById("battle-screen");
+            const panel = document.getElementById("question-panel");
+            battleScreen.scrollTop = 0;
+            requestAnimationFrame(() => panel.focus({ preventScroll: true }));
+        }
+
+        function updateChoices() {
+            const choicesDiv = document.getElementById("choices");
+            choicesDiv.innerHTML = "";
+
+            currentChoices.forEach((choice, index) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "choice-button";
+                button.textContent = choice.text;
+                button.onclick = () => makeChoice(index);
+                choicesDiv.appendChild(button);
+            });
+        }
+
+        function disableButtons() {
+            document.querySelectorAll(".choice-button").forEach(button => {
+                button.disabled = true;
+            });
+        }
+
+        function makeChoice(choiceIndex) {
+            if (isProcessing) return;
+            isProcessing = true;
+            disableButtons();
+
+            const level = levels[currentLevel];
+            const quest = level.quests[questStep];
+            const choice = currentChoices[choiceIndex];
+            const buttons = [...document.querySelectorAll(".choice-button")];
+
+            if (choice.correct) {
+                buttons[choiceIndex].classList.add("answer-correct");
+
+                const isLastQuestion = questStep === level.quests.length - 1;
+                const regularDamage = Math.ceil(bossMaxHP / level.quests.length);
+                const damage = isLastQuestion ? bossHP : Math.min(regularDamage, bossHP);
+                bossHP = Math.max(0, bossHP - damage);
+                showDamage("boss-char", damage);
+                updateHealth();
+
+                showFeedback(
+                    true,
+                    quest.explanation,
+                    isLastQuestion ? "victory" : "next"
+                );
+            } else {
+                buttons[choiceIndex].classList.add("answer-incorrect");
+                const correctIndex = currentChoices.findIndex(answer => answer.correct);
+                if (correctIndex >= 0) {
+                    buttons[correctIndex].classList.add("revealed-correct");
+                }
+
+                const mistakeDamage = Math.ceil(playerMaxHP / level.mistakeLimit);
+                playerHP = Math.max(0, playerHP - mistakeDamage);
+                showDamage("player-char", mistakeDamage);
+                updateHealth();
+
+                const defeated = playerHP <= 0;
+                showFeedback(
+                    false,
+                    quest.explanation,
+                    defeated ? "defeat" : "retry"
+                );
+            }
+        }
+
+        function showFeedback(isCorrect, explanation, action) {
+            const feedback = document.getElementById("feedback");
+            feedback.textContent = (isCorrect ? "Correct! " : "Not quite. ") + explanation;
+            feedback.className = isCorrect ? "correct-feedback" : "incorrect-feedback";
+            feedback.hidden = false;
+
+            pendingAction = action;
+            const battleScreen = document.getElementById("battle-screen");
+            requestAnimationFrame(() => {
+                battleScreen.scrollTop = battleScreen.scrollHeight;
+            });
+
+            feedbackTimer = setTimeout(advanceAfterFeedback, feedbackDelay);
+        }
+
+        function clearScheduledTransition() {
+            if (feedbackTimer !== null) {
+                clearTimeout(feedbackTimer);
+                feedbackTimer = null;
+            }
+        }
+
+        function advanceAfterFeedback() {
+            clearScheduledTransition();
+
+            if (pendingAction === "next") {
+                questStep++;
+                loadQuestion();
+                return;
+            }
+
+            if (pendingAction === "retry") {
+                isProcessing = false;
+                pendingAction = null;
+                document.getElementById("feedback").hidden = true;
+                updateChoices();
+
+                const battleScreen = document.getElementById("battle-screen");
+                battleScreen.scrollTop = 0;
+                requestAnimationFrame(() => {
+                    const firstChoice = document.querySelector(".choice-button");
+                    if (firstChoice) firstChoice.focus();
+                });
+                return;
+            }
+
+            if (pendingAction === "victory") {
+                victory();
+                return;
+            }
+
+            if (pendingAction === "defeat") {
+                defeat();
+            }
+        }
+
+        function showEndScreen(screenId) {
+            const screen = document.getElementById(screenId);
+            document.getElementById("battle-screen").inert = true;
+            screen.style.display = "flex";
+            requestAnimationFrame(() => {
+                const firstButton = screen.querySelector("button");
+                if (firstButton) firstButton.focus();
+            });
+        }
+
+        function victory() {
+            showEndScreen("victory-screen");
+        }
+
+        function defeat() {
+            showEndScreen("defeat-screen");
+        }
+    </script>
+</body>
+</html>
